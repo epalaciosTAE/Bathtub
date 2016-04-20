@@ -152,13 +152,21 @@ public class MainActivity extends AppCompatActivity implements BathtubView {
     }
 
 
-    private void raiseWaterLevel(float currentLevel) {
-        TranslateAnimation animation = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0f, Animation.RELATIVE_TO_SELF, currentLevel);
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        presenter.unSubscribeSingleTap();
+    }
+
+    private void raiseWaterLevel(float level) {
+        TranslateAnimation animation = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0f, currentLevel, level);
         animation.setInterpolator(new LinearInterpolator());
         animation.setDuration(800);
         animation.setFillAfter(true);
         imgBathTub.startAnimation(animation);
+        currentLevel = level;
     }
+
 
     private void rotateTap(View view, float rotation) {
         RotateAnimation rotateAnimation = new RotateAnimation(0f, rotation, Animation.RELATIVE_TO_SELF,0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
@@ -166,7 +174,6 @@ public class MainActivity extends AppCompatActivity implements BathtubView {
         rotateAnimation.setDuration(500);
         view.startAnimation(rotateAnimation);
     }
-
 
     private void rotateIndicator(float rotateDirection) {
         RotateAnimation rotateAnimation = new RotateAnimation(0f, rotateDirection, Animation.RELATIVE_TO_SELF,0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
@@ -182,11 +189,5 @@ public class MainActivity extends AppCompatActivity implements BathtubView {
                 .boilerModule(new BoilerModule(this))
                 .build()
                 .inject(this);
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        presenter.unSubscribeSingleTap();
     }
 }
