@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity implements BathtubView {
 
     @Inject BoilerPresenter presenter;
 
-    private float currentLevel; // raiseWaterLevel animation doesnt work as i expected, i should handle the positions and the level
+    private float currentLevel;
     private Tap coldTap, hotTap;
     private List<Tap> taps;
     private Bathtub bathtub;
@@ -138,7 +138,7 @@ public class MainActivity extends AppCompatActivity implements BathtubView {
 
     @Override
     public void displayTemperature(int temp) {
-        Toast.makeText(this, "Bathtub temperature is " + temp, Toast.LENGTH_SHORT).show();
+        Log.i(TAG, "displayTemperature: Bathtub temperature is  + temp");
     }
 
     @Override
@@ -161,7 +161,7 @@ public class MainActivity extends AppCompatActivity implements BathtubView {
     private void raiseWaterLevel(float level) {
         TranslateAnimation animation = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0f, currentLevel, level);
         animation.setInterpolator(new LinearInterpolator());
-        animation.setDuration(800);
+        animation.setDuration(500);
         animation.setFillAfter(true);
         imgBathTub.startAnimation(animation);
         currentLevel = level;
