@@ -12,6 +12,13 @@ public class Bathtub {
     private int temperature;
     private List<Tap> taps;
 
+    public Bathtub() {
+    }
+
+    public Bathtub(List<Tap> taps) {
+        this.taps = taps;
+    }
+
     public List<Tap> getTaps() {
         return taps;
     }

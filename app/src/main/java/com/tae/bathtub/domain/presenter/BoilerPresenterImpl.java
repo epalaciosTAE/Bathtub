@@ -1,6 +1,7 @@
 package com.tae.bathtub.domain.presenter;
 
 import android.os.Handler;
+import android.support.annotation.FloatRange;
 import android.support.annotation.NonNull;
 import android.support.v4.util.SparseArrayCompat;
 import android.util.Log;
@@ -21,8 +22,10 @@ import javax.inject.Inject;
 
 import rx.Observable;
 import rx.Observer;
+import rx.Subscriber;
 import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Func2;
 import rx.schedulers.Schedulers;
 
 /**
@@ -35,9 +38,11 @@ public class BoilerPresenterImpl implements BoilerPresenter {
     @Inject
     BathtubView view;
 
-    private Boiler boiler;
-    private Subscription openTapSubscription;
     private int level;
+    private Boiler boiler;
+    private Bathtub bathtub;
+    private Subscription openTapSubscription;
+    private Subscription dobleTapSubscription;
     private SparseArrayCompat<Float> levels;
 
     @Inject
@@ -108,107 +113,144 @@ public class BoilerPresenterImpl implements BoilerPresenter {
         return indicator;
     }
 
-    /**
-     * TO IMPROVE
-     * This shoul not happend here.
-     * As we are running the interval in another thread using rx, this should have been implemented
-     * in the interactor and the values should have been returned using a callback as we are
-     * doing in order to get the boiler from the server.
-     * The solution is quite dirty: using handlers. Not nice :(
-     * @param taps
-     */
-    @Override
-    public void fillBathtub(final List<Tap> taps) {
-        final Bathtub bathtub = new Bathtub();
-        bathtub.setTaps(taps);
-        for (Tap tap : taps) {
-            Log.i("IS TAP OPEN?", "fillBathtub: tab is open " + tap.isOpen());
-        }
-        Log.i("OPEN TAP", "fillBathtub: tap is open");
-        final Observable<Long> waterlevelObservable = Observable.interval(3, TimeUnit.SECONDS);  // Interval is 3 for testing purposes, should be 60
-        openTapSubscription = waterlevelObservable.subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(getBathtubObserver(taps, bathtub));
-    }
-
-    @NonNull
-    private Observer<Long> getBathtubObserver(final List<Tap> taps, final Bathtub bathtub) {
-        return new Observer<Long>() {
-            @Override
-            public void onCompleted() {
-                Log.i("COMPLETE", "onCompleted: bathtub is full!");
-                openTapSubscription.unsubscribe();
-                Schedulers.shutdown();
-                new Handler().post(new Runnable() {
-                    @Override
-                    public void run() {
-                        view.increaseWaterLevel(-220);
-                        view.showToast("Bathub is full, taps are disabled, enjoy!");
-                        view.setTemperatureIndicator(getIndicatorPosition(bathtub.getTemperature()));
-                    }
-                });
-
-            }
-
-            @Override
-            public void onError(Throwable e) {
-            }
-
-            @Override
-            public void onNext(Long interval) {
-                if (!openTapSubscription.isUnsubscribed()) {
-                    Log.i("LEVEL", "level count: " + level);
-                    Log.i("LEVEL", "level in bathtub: " + bathtub.getLevel());
-                    Log.i("LEVEL", "call: value to increase water level" + convertToNegative(getWaterLevelByInterval(interval)));
-                    float tempWaterLevel = convertToNegative(getWaterLevelByInterval(interval));
-                    if (bathtub.areTwoTapsOpen(taps)) {
-                        level += 20;
-                        tempWaterLevel *= 2;
-                    } else {
-                        for (Tap tap : bathtub.getTaps()) {
-                            if (tap.isOpen()) {
-                                level += 10;
-                            }
-                        }
-                    }
-
-                    final float waterLevel = tempWaterLevel;
-                    bathtub.setLevel(level);
-                    calculateTemperature(bathtub);
-
-                    if (bathtub.getLevel() >= Bathtub.MAX_CAPACITY) {
-                        new Handler().post(new Runnable() {
-                            @Override
-                            public void run() {
-                                view.waterLevelOverflow(level >= Bathtub.MAX_CAPACITY);
-                            }
-                        });
-                        onCompleted();
-                    }
-                    new Handler().post(new Runnable() {
-                        @Override
-                        public void run() {
-                            view.increaseWaterLevel(waterLevel);
-                        }
-                    });
-
-                }
-            }
-        };
-    }
-
-
     @Override
     public String getServiceError(String error) {
         return error;
     }
 
     @Override
-    public void closeTap() {
-        if (!openTapSubscription.isUnsubscribed()) {
+    public void unSubscribeSingleTap() {
+        if (openTapSubscription != null &&!openTapSubscription.isUnsubscribed()) {
             openTapSubscription.unsubscribe();
-            Log.i("CLOSE TAP", "closeTap: tap is close!");
+            Log.i("CLOSE TAP", "unSubscribeSingleTap: tap is close!");
         }
+    }
+
+    @Override
+    public void openBothTaps(List<Tap> taps) {
+        Observable<Long> tapCold = Observable.interval(3, TimeUnit.SECONDS);
+        Observable<Long> tapHot = Observable.interval(3, TimeUnit.SECONDS);
+        dobleTapSubscription = tapCold.zipWith(tapHot, new Func2<Long, Long, Float>() {
+            @Override
+            public Float call(Long intervalCold, Long intervalHot) {
+                Log.i("ZIP", "call: along1 " + intervalCold + " along2 " + intervalHot);
+                float cold = convertToNegative(getWaterLevelByInterval(intervalCold));
+                float hot = convertToNegative(getWaterLevelByInterval(intervalHot));
+                bathtub.setLevel(bathtub.getLevel() + 20);
+                final float waterLevel = cold + hot;
+//                calculateTemperature(bathtub);
+
+
+//                new Handler().post(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        Log.i("SEND DATA TO ACTIVITY", "run: water level " + waterLevel);
+//                        view.increaseWaterLevel(waterLevel);
+//                    }
+//                });
+                return waterLevel;
+            }
+        }).subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<Float>() {
+                    @Override
+                    public void onCompleted() {
+                        dobleTapSubscription.unsubscribe();
+                        Schedulers.shutdown();
+                        new Handler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                view.increaseWaterLevel(-220);
+                                view.showToast("Bathub is full, taps are disabled, enjoy!");
+                                view.setTemperatureIndicator(getIndicatorPosition(bathtub.getTemperature()));
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.e("DOBLE TAP ERROR", "onError: ", e);
+                    }
+
+                    @Override
+                    public void onNext(final Float waterLevel) {
+                        Log.i("DOBLE TAP NEXT", "onNext: waterlevel both taps");
+                        calculateTemperature(bathtub);
+                        view.increaseWaterLevel(waterLevel);
+                        if (waterLevel*-1 >= Bathtub.MAX_CAPACITY) {
+                            new Handler().post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    view.waterLevelOverflow(waterLevel*-1 >= Bathtub.MAX_CAPACITY);
+                                }
+                            });
+                            onCompleted();
+                        }
+                    }
+                });
+    }
+
+    @Override
+    public void openSingleTap(Tap tap) {
+        Observable<Long> waterlevelObservable = Observable.interval(3, TimeUnit.SECONDS);
+        openTapSubscription = waterlevelObservable.subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<Long>() {
+                    @Override
+                    public void onCompleted() {
+                        Schedulers.shutdown();
+                        new Handler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                view.increaseWaterLevel(-220);
+                                view.showToast("Bathub is full, taps are disabled, enjoy!");
+                                view.setTemperatureIndicator(getIndicatorPosition(bathtub.getTemperature()));
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                    }
+
+                    @Override
+                    public void onNext(Long interval) {
+                        float tempWaterLevel = convertToNegative(getWaterLevelByInterval(interval));
+                        bathtub.setLevel(bathtub.getLevel() + 10);
+                        calculateTemperature(bathtub);
+                        final float waterLevel = tempWaterLevel;
+                        new Handler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                Log.i("SEND DATA TO ACTIVITY", "run: water level " + waterLevel);
+                                view.increaseWaterLevel(waterLevel);
+                            }
+                        });
+
+                        if (bathtub.getLevel() >= Bathtub.MAX_CAPACITY) {
+                            new Handler().post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    view.waterLevelOverflow(level >= Bathtub.MAX_CAPACITY);
+                                }
+                            });
+                            onCompleted();
+                        }
+                    }
+                });
+    }
+
+    @Override
+    public void unSubscribeTaps() {
+        if (dobleTapSubscription != null && !dobleTapSubscription.isUnsubscribed()) {
+            dobleTapSubscription.unsubscribe();
+            Log.i("CLOSE TAPS", "Both taps are closed!");
+        }
+    }
+
+    @Override
+    public void getBathtub(Bathtub bathtub) {
+        this.bathtub = bathtub;
     }
 
     private float getWaterLevelByInterval(Long interval) {

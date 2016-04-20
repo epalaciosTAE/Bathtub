@@ -13,6 +13,7 @@ import android.widget.Toast;
 
 import com.tae.bathtub.App;
 import com.tae.bathtub.R;
+import com.tae.bathtub.data.local.Bathtub;
 import com.tae.bathtub.data.local.Tap;
 import com.tae.bathtub.di.component.DaggerBoilerComponent;
 import com.tae.bathtub.di.modules.BoilerModule;
@@ -41,8 +42,8 @@ public class MainActivity extends AppCompatActivity implements BathtubView {
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
-    @Bind(R.id.indicator)ImageView indicator;
-    @Bind(R.id.imgBath) ImageView bathTub;
+    @Bind(R.id.indicator)ImageView imgIndicator;
+    @Bind(R.id.imgBath) ImageView imgBathTub;
     @Bind({R.id.hotTap, R.id.coldTap}) List<ImageView>tapsView;
 
     @Inject BoilerPresenter presenter;
@@ -50,6 +51,7 @@ public class MainActivity extends AppCompatActivity implements BathtubView {
     private float currentLevel; // raiseWaterLevel animation doesnt work as i expected, i should handle the positions and the level
     private Tap coldTap, hotTap;
     private List<Tap> taps;
+    private Bathtub bathtub;
 
 
     @Override
@@ -59,15 +61,17 @@ public class MainActivity extends AppCompatActivity implements BathtubView {
         ButterKnife.bind(this);
         resolveDependency();
         presenter.initBoilerService();
-        createBathtub();
+        bathtub = createBathtub();
+        presenter.getBathtub(bathtub);
     }
 
-    private void createBathtub() {
+    private Bathtub createBathtub() {
         coldTap = new Tap();
         hotTap = new Tap();
         taps = new ArrayList<>(2);
         taps.add(coldTap);
         taps.add(hotTap);
+        return new Bathtub(taps);
     }
 
     @OnClick({R.id.coldTap, R.id.hotTap})
@@ -84,6 +88,18 @@ public class MainActivity extends AppCompatActivity implements BathtubView {
             rotateDirection = 45f;
             handleTapEvents(view, rotateDirection, hotTap);
         }
+
+        if (bathtub.areTwoTapsOpen(taps)) {
+            presenter.unSubscribeSingleTap();
+            presenter.openBothTaps(taps);
+        } else {
+            for (Tap tap : taps) {
+                if (tap.isOpen()) {
+                    presenter.unSubscribeTaps();
+                    presenter.openSingleTap(tap);
+                }
+            }
+        }
     }
 
     private void handleTapEvents(View view, float rotateDirection, Tap tap) {
@@ -91,12 +107,12 @@ public class MainActivity extends AppCompatActivity implements BathtubView {
             rotateIndicator(rotateDirection);
             rotateTap(view, 360f);
             tap.setOpen(true);
-            presenter.fillBathtub(taps);
+//            presenter.fillBathtub(taps);
         } else {
             rotateIndicator(0f);
             tap.setOpen(false);
             rotateTap(view, -360f);
-            presenter.closeTap();
+            presenter.unSubscribeSingleTap();
         }
     }
 
@@ -142,7 +158,7 @@ public class MainActivity extends AppCompatActivity implements BathtubView {
         animation.setInterpolator(new LinearInterpolator());
         animation.setDuration(800);
         animation.setFillAfter(true);
-        bathTub.startAnimation(animation);
+        imgBathTub.startAnimation(animation);
     }
 
     private void rotateTap(View view, float rotation) {
@@ -158,7 +174,7 @@ public class MainActivity extends AppCompatActivity implements BathtubView {
         rotateAnimation.setInterpolator(new LinearInterpolator());
         rotateAnimation.setDuration(500);
         rotateAnimation.setFillAfter(true);
-        indicator.startAnimation(rotateAnimation);
+        imgIndicator.startAnimation(rotateAnimation);
     }
 
     private void resolveDependency() {
@@ -167,5 +183,11 @@ public class MainActivity extends AppCompatActivity implements BathtubView {
                 .boilerModule(new BoilerModule(this))
                 .build()
                 .inject(this);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        presenter.unSubscribeSingleTap();
     }
 }
