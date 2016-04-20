@@ -18,7 +18,7 @@ public interface BoilerPresenter {
     int getColdWater();
     String getServiceError(String error);
     void unSubscribeSingleTap();
-    void openBothTaps(List<Tap> taps);
+    void openBothTaps();
     void openSingleTap(Tap tap);
     void unSubscribeTaps();
     void getBathtub(Bathtub bathtub);

@@ -91,7 +91,7 @@ public class MainActivity extends AppCompatActivity implements BathtubView {
 
         if (bathtub.areTwoTapsOpen(taps)) {
             presenter.unSubscribeSingleTap();
-            presenter.openBothTaps(taps);
+            presenter.openBothTaps();
         } else {
             for (Tap tap : taps) {
                 if (tap.isOpen()) {
@@ -107,7 +107,6 @@ public class MainActivity extends AppCompatActivity implements BathtubView {
             rotateIndicator(rotateDirection);
             rotateTap(view, 360f);
             tap.setOpen(true);
-//            presenter.fillBathtub(taps);
         } else {
             rotateIndicator(0f);
             tap.setOpen(false);

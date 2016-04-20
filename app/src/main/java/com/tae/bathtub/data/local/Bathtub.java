@@ -7,7 +7,7 @@ import java.util.List;
  */
 public class Bathtub {
 
-    public static final int MAX_CAPACITY = 150;
+    public static final int MAX_CAPACITY = 220;
     private int level;
     private int temperature;
     private List<Tap> taps;
