@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    android:background="@drawable/bg"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    tools:context=".presentation.MainActivity"
+    tools:showIn="@layout/activity_main">
+
+
+    <ImageView
+        android:id="@+id/indicator"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="100dp"
+        android:paddingRight="7dp"
+        android:src="@drawable/indicator"/>
+
+    <LinearLayout
+        android:id="@+id/bathLayout"
+        android:layout_width="230dp"
+        android:layout_height="110dp"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="260dp">
+        <ImageView
+            android:id="@+id/imgBath"
+            android:layout_width="230dp"
+            android:layout_height="110dp"
+            android:background="@drawable/water"
+            android:layout_marginTop="110dp"/>
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:weightSum="1"
+        android:layout_marginTop="20dp"
+        android:layout_below="@id/bathLayout">
+
+        <ImageView
+            android:id="@+id/coldTap"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_weight="0.5"
+            android:src="@drawable/coldtap"/>
+
+        <ImageView
+            android:id="@+id/hotTap"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_weight="0.5"
+            android:src="@drawable/hottap"/>
+    </LinearLayout>
+</RelativeLayout>
