@@ -1,5 +1,6 @@
 package com.tae.bathtub.domain.presenter;
 
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.v4.util.SparseArrayCompat;
 import android.util.Log;
@@ -107,6 +108,15 @@ public class BoilerPresenterImpl implements BoilerPresenter {
         return indicator;
     }
 
+    /**
+     * TO IMPROVE
+     * This shoul not happend here.
+     * As we are running the interval in another thread using rx, this should have been implemented
+     * in the interactor and the values should have been returned using a callback as we are
+     * doing in order to get the boiler from the server.
+     * The solution is quite dirty: using handlers. Not nice :(
+     * @param taps
+     */
     @Override
     public void fillBathtub(final List<Tap> taps) {
         final Bathtub bathtub = new Bathtub();
@@ -116,7 +126,7 @@ public class BoilerPresenterImpl implements BoilerPresenter {
         }
         Log.i("OPEN TAP", "fillBathtub: tap is open");
         final Observable<Long> waterlevelObservable = Observable.interval(3, TimeUnit.SECONDS);  // Interval is 3 for testing purposes, should be 60
-        openTapSubscription = waterlevelObservable.subscribeOn(AndroidSchedulers.mainThread())
+        openTapSubscription = waterlevelObservable.subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(getBathtubObserver(taps, bathtub));
     }
@@ -128,10 +138,16 @@ public class BoilerPresenterImpl implements BoilerPresenter {
             public void onCompleted() {
                 Log.i("COMPLETE", "onCompleted: bathtub is full!");
                 openTapSubscription.unsubscribe();
-                view.increaseWaterLevel(-220);
-                view.showToast("Bathub is full, taps are disabled, enjoy!");
-                view.setTemperatureIndicator(getIndicatorPosition(bathtub.getTemperature()));
                 Schedulers.shutdown();
+                new Handler().post(new Runnable() {
+                    @Override
+                    public void run() {
+                        view.increaseWaterLevel(-220);
+                        view.showToast("Bathub is full, taps are disabled, enjoy!");
+                        view.setTemperatureIndicator(getIndicatorPosition(bathtub.getTemperature()));
+                    }
+                });
+
             }
 
             @Override
@@ -145,7 +161,13 @@ public class BoilerPresenterImpl implements BoilerPresenter {
                     Log.i("LEVEL", "level in bathtub: " + bathtub.getLevel());
                     Log.i("LEVEL", "call: value to increase water level" + convertToNegative(getWaterLevelByInterval(interval)));
                     if (bathtub.getLevel() >= Bathtub.MAX_CAPACITY) {
-                        view.waterLevelOverflow(level >= Bathtub.MAX_CAPACITY);
+                        new Handler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                view.waterLevelOverflow(level >= Bathtub.MAX_CAPACITY);
+                            }
+                        });
+
                         onCompleted();
                         return;
                     }
@@ -160,8 +182,14 @@ public class BoilerPresenterImpl implements BoilerPresenter {
                     }
                     bathtub.setLevel(level);
                     calculateTemperature(bathtub);
-                    float waterLevel = convertToNegative(getWaterLevelByInterval(interval));
-                    view.increaseWaterLevel(waterLevel);
+                    final float waterLevel = convertToNegative(getWaterLevelByInterval(interval));
+                    new Handler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            view.increaseWaterLevel(waterLevel);
+                        }
+                    });
+
                 }
             }
         };

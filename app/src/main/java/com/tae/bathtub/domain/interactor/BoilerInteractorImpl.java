@@ -47,9 +47,6 @@ public class BoilerInteractorImpl implements BoilerInteractor {
 
     @Override
     public void getBoiler(final ServiceCallback<Boiler, ErrorResponse> callback) {
-
-
-
         // This was the initial approach using Retrofit, but as the JSON has missing the "" in the properties,
         //the converter is returning a malforming json exception.
         Observable<Boiler> boilerObservable = service.getBoiler();

@@ -27,6 +27,16 @@ import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
+/**
+ * Flow:
+ * For get boiler:
+ * Activity --> Presenter --> Interactor --> callback to Presenter
+ *
+ * For User input:
+ * Presenter --> do some logic --> BathtubView to update the view
+ *
+ * When the bathtub is full the taps are disabled.
+ */
 public class MainActivity extends AppCompatActivity implements BathtubView {
 
     private static final String TAG = MainActivity.class.getSimpleName();
@@ -49,10 +59,10 @@ public class MainActivity extends AppCompatActivity implements BathtubView {
         ButterKnife.bind(this);
         resolveDependency();
         presenter.initBoilerService();
-        createBathtup();
+        createBathtub();
     }
 
-    private void createBathtup() {
+    private void createBathtub() {
         coldTap = new Tap();
         hotTap = new Tap();
         taps = new ArrayList<>(2);
@@ -126,6 +136,13 @@ public class MainActivity extends AppCompatActivity implements BathtubView {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
+    /**
+     * TO IMPROVE
+     *  The data is right but the animation behavior it
+        needs to be handled much better.
+        Data comes updated but animation miss behave
+     * @param currentLevel
+     */
     private void raiseWaterLevel(float currentLevel) {
         TranslateAnimation animation = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0f, Animation.RELATIVE_TO_SELF, currentLevel);
         animation.setInterpolator(new LinearInterpolator());
