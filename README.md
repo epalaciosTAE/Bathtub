@@ -23,9 +23,7 @@ the json fieds without "":
 I left the Retrofic logic that is catching the error.
 As workaround i just get the json using a HttpUrlConnection.
 
-So far, logic to fill the bathtub has to be improved
-
 
 -Device density target: hdpi
--Time spent: 2 days
+-Time spent: 2.5 days
 -Developed in: Android Studio 2.0
