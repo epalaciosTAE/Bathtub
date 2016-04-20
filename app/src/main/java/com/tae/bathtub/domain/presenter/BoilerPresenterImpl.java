@@ -160,19 +160,10 @@ public class BoilerPresenterImpl implements BoilerPresenter {
                     Log.i("LEVEL", "level count: " + level);
                     Log.i("LEVEL", "level in bathtub: " + bathtub.getLevel());
                     Log.i("LEVEL", "call: value to increase water level" + convertToNegative(getWaterLevelByInterval(interval)));
-                    if (bathtub.getLevel() >= Bathtub.MAX_CAPACITY) {
-                        new Handler().post(new Runnable() {
-                            @Override
-                            public void run() {
-                                view.waterLevelOverflow(level >= Bathtub.MAX_CAPACITY);
-                            }
-                        });
-
-                        onCompleted();
-                        return;
-                    }
+                    float tempWaterLevel = convertToNegative(getWaterLevelByInterval(interval));
                     if (bathtub.areTwoTapsOpen(taps)) {
                         level += 20;
+                        tempWaterLevel *= 2;
                     } else {
                         for (Tap tap : bathtub.getTaps()) {
                             if (tap.isOpen()) {
@@ -180,9 +171,20 @@ public class BoilerPresenterImpl implements BoilerPresenter {
                             }
                         }
                     }
+
+                    final float waterLevel = tempWaterLevel;
                     bathtub.setLevel(level);
                     calculateTemperature(bathtub);
-                    final float waterLevel = convertToNegative(getWaterLevelByInterval(interval));
+
+                    if (bathtub.getLevel() >= Bathtub.MAX_CAPACITY) {
+                        new Handler().post(new Runnable() {
+                            @Override
+                            public void run() {
+                                view.waterLevelOverflow(level >= Bathtub.MAX_CAPACITY);
+                            }
+                        });
+                        onCompleted();
+                    }
                     new Handler().post(new Runnable() {
                         @Override
                         public void run() {
@@ -203,9 +205,10 @@ public class BoilerPresenterImpl implements BoilerPresenter {
 
     @Override
     public void closeTap() {
-        openTapSubscription.unsubscribe();
-        Log.i("CLOSE TAP", "closeTap: tap is close!");
-
+        if (!openTapSubscription.isUnsubscribed()) {
+            openTapSubscription.unsubscribe();
+            Log.i("CLOSE TAP", "closeTap: tap is close!");
+        }
     }
 
     private float getWaterLevelByInterval(Long interval) {

@@ -136,13 +136,7 @@ public class MainActivity extends AppCompatActivity implements BathtubView {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
-    /**
-     * TO IMPROVE
-     *  The data is right but the animation behavior it
-        needs to be handled much better.
-        Data comes updated but animation miss behave
-     * @param currentLevel
-     */
+
     private void raiseWaterLevel(float currentLevel) {
         TranslateAnimation animation = new TranslateAnimation(Animation.RELATIVE_TO_SELF, 0f, Animation.RELATIVE_TO_SELF, currentLevel);
         animation.setInterpolator(new LinearInterpolator());
