@@ -25,5 +25,5 @@ As workaround i just get the json using a HttpUrlConnection.
 
 
 -Device density target: hdpi
--Time spent: 2.5 days
+-Time spent: 2 days
 -Developed in: Android Studio 2.0
